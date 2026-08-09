@@ -3,8 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { MOCK_TODDLERS, MOCK_MEASUREMENTS } from '../lib/mockData';
 import { calculateAgeInMonths } from '../lib/utils';
-import { ArrowLeft, User, Calendar, Activity, TrendingUp, TrendingDown, Minus, MapPin, Search } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Activity, TrendingUp, TrendingDown, Minus, MapPin, Printer } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ToddlerReport from '../components/ToddlerReport';
 
 export default function PublicToddlerDetail() {
   const { id } = useParams();
@@ -92,8 +93,9 @@ export default function PublicToddlerDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <>
+      <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-8 print:hidden">
+        <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Profile Card */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 text-slate-800 shadow-xl shadow-slate-200/40 border border-white relative overflow-hidden">
@@ -116,11 +118,19 @@ export default function PublicToddlerDetail() {
                 <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" /> {toddler.dusun}</span>
               </div>
             </div>
-            <span className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm backdrop-blur-sm border ${
-              toddler.gender === 'L' ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-pink-50 text-pink-700 border-pink-100'
-            }`}>
-              {toddler.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
-            </span>
+            <div className="flex flex-wrap items-center gap-4">
+              <button 
+                onClick={() => window.print()} 
+                className="px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm backdrop-blur-sm border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all"
+              >
+                <Printer className="w-4 h-4" /> Unduh Laporan
+              </button>
+              <span className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm backdrop-blur-sm border ${
+                toddler.gender === 'L' ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-pink-50 text-pink-700 border-pink-100'
+              }`}>
+                {toddler.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -135,21 +145,31 @@ export default function PublicToddlerDetail() {
               </h3>
               
               {chartData.length > 0 ? (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
-                      <YAxis yAxisId="left" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="right" orientation="right" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
-                      <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                      />
-                      <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
-                      <Line yAxisId="left" type="monotone" dataKey="Berat" stroke="#0ea5e9" strokeWidth={3} dot={{r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Berat (kg)" />
-                      <Line yAxisId="right" type="monotone" dataKey="Tinggi" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Tinggi (cm)" />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="flex flex-col gap-8">
+                  <div className="h-64">
+                    <h4 className="text-sm font-bold text-slate-600 mb-2 text-center">Grafik Berat Badan (kg)</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
+                        <YAxis tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                        <Line type="monotone" dataKey="Berat" stroke="#0ea5e9" strokeWidth={3} dot={{r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Berat (kg)" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="h-64">
+                    <h4 className="text-sm font-bold text-slate-600 mb-2 text-center">Grafik Tinggi Badan (cm)</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
+                        <YAxis tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                        <Line type="monotone" dataKey="Tinggi" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Tinggi (cm)" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               ) : (
                 <div className="h-80 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -214,5 +234,8 @@ export default function PublicToddlerDetail() {
         </div>
       </div>
     </div>
+
+      <ToddlerReport toddler={toddler} measurements={measurements} />
+    </>
   );
 }

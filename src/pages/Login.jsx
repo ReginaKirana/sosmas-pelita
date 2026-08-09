@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Baby, Lock, Mail, ArrowRight } from 'lucide-react';
+import FeedbackModal from '../components/FeedbackModal';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [feedback, setFeedback] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
@@ -18,7 +20,12 @@ export default function Login() {
       if (email === 'admin@posyandu.com' && password === 'admin123') {
         navigate('/admin');
       } else {
-        alert('Email atau Kata Sandi salah! (Petunjuk: admin@posyandu.com / admin123)');
+        setFeedback({
+          isOpen: true,
+          title: 'Akses Ditolak',
+          message: 'Email atau Kata Sandi salah! (Petunjuk: admin@posyandu.com / admin123)',
+          type: 'error'
+        });
       }
     }, 1000);
   };
@@ -126,7 +133,7 @@ export default function Login() {
             </div>
           </form>
 
-          <div className="mt-8 text-center pt-6 border-t border-slate-100">
+          <div className="mt-2 text-center pt-4 border-t border-slate-100">
             <p className="text-sm text-slate-500 mb-2">Ingin mengecek data balita Anda?</p>
             <Link to="/" className="text-sm font-bold text-sky-600 hover:text-sky-500 transition-colors inline-flex items-center gap-1.5">
               &larr; Kembali ke Portal Orang Tua
@@ -134,6 +141,11 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      <FeedbackModal 
+        {...feedback} 
+        onClose={() => setFeedback({ ...feedback, isOpen: false })} 
+      />
     </div>
   );
 }

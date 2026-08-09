@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { calculateAgeInMonths, getAgeCategory } from '../lib/utils';
-import { Search, Filter, Eye, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Filter, ChevronRight, ChevronLeft, Upload } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import ImportPreviewModal from '../components/ImportPreviewModal';
+import FeedbackModal from '../components/FeedbackModal';
 
 export default function Toddlers() {
   const [toddlers, setToddlers] = useState([]);
@@ -10,9 +12,15 @@ export default function Toddlers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [ageFilter, setAgeFilter] = useState('Semua');
   const [dusunFilter, setDusunFilter] = useState('Semua');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [feedback, setFeedback] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    async function fetchToddlers() {
+  const fetchToddlers = async () => {
+    setIsLoading(true);
       // Mock mode fallback
       if (import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co' || !import.meta.env.VITE_SUPABASE_URL) {
         setToddlers([
@@ -28,6 +36,7 @@ export default function Toddlers() {
         const { data, error } = await supabase
           .from('toddlers')
           .select('*')
+          .order('dusun', { ascending: true })
           .order('name', { ascending: true });
         
         if (error) throw error;
@@ -37,10 +46,33 @@ export default function Toddlers() {
       } finally {
         setIsLoading(false);
       }
-    }
-
+    };
+  
+  useEffect(() => {
     fetchToddlers();
   }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImportFile(file);
+      setIsImportModalOpen(true);
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = null;
+  };
+
+  const handleImportSuccess = (count) => {
+    setIsImportModalOpen(false);
+    setImportFile(null);
+    setFeedback({
+      isOpen: true,
+      title: 'Impor Berhasil!',
+      message: `Berhasil memproses ${count} data balita dan pengukurannya.`,
+      type: 'success'
+    });
+    fetchToddlers();
+  };
 
   const filteredToddlers = toddlers.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -55,19 +87,38 @@ export default function Toddlers() {
     return matchesSearch && category === ageFilter;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, ageFilter, dusunFilter]);
+
+  const totalPages = Math.ceil(filteredToddlers.length / ITEMS_PER_PAGE);
+  const currentToddlers = filteredToddlers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Data Balita</h2>
+          <h1 className="text-2xl font-bold text-slate-800">Data Balita</h1>
           <p className="text-slate-500">Kelola dan pantau daftar balita terdaftar.</p>
         </div>
-        <Link 
-          to="/admin/input" 
-          className="bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-sky-200 w-fit active:scale-95"
-        >
-          + Tambah Balita Baru
-        </Link>
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 font-bold rounded-xl hover:bg-emerald-100 transition-all shadow-sm">
+            <Upload className="w-5 h-5" />
+            Import Excel
+            <input 
+              type="file" 
+              accept=".xlsx, .xls" 
+              className="hidden" 
+              onChange={handleFileChange}
+            />
+          </label>
+          <Link to="/admin/input" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white font-bold rounded-xl hover:from-sky-600 hover:to-sky-700 shadow-md transition-all">
+            + Tambah Balita Baru
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-slate-200/40 border border-white overflow-hidden">
@@ -127,12 +178,11 @@ export default function Toddlers() {
                 <th className="p-5 font-bold">Nama Balita</th>
                 <th className="p-5 font-bold">Nama Ibu</th>
                 <th className="p-5 font-bold">Jenis Kelamin</th>
-                <th className="p-5 font-bold">Usia</th>
-                <th className="p-5 font-bold">Dusun</th>
-                <th className="p-5 font-bold text-right">Aksi</th>
+                <th className="px-5 py-4 w-1/5 text-slate-500 font-bold tracking-wider">USIA</th>
+                <th className="px-5 py-4 w-1/5 text-slate-500 font-bold tracking-wider">DUSUN</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100/80">
+            <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
                   <td colSpan="5" className="p-8 text-center text-slate-500">
@@ -149,13 +199,17 @@ export default function Toddlers() {
                   </td>
                 </tr>
               ) : (
-                filteredToddlers.map((toddler) => {
+                currentToddlers.map((toddler) => {
                   const ageMonths = calculateAgeInMonths(toddler.birth_date);
                   const ageCategory = getAgeCategory(ageMonths);
                   return (
-                    <tr key={toddler.id} className="hover:bg-sky-50/50 transition-colors group bg-white">
+                    <tr 
+                      key={toddler.id} 
+                      onClick={() => navigate(`/admin/balita/${toddler.id}`)}
+                      className="hover:bg-sky-50/50 transition-colors group bg-white cursor-pointer"
+                    >
                       <td className="p-5">
-                        <div className="font-bold text-slate-800">{toddler.name}</div>
+                        <div className="font-bold text-slate-800 group-hover:text-sky-600 transition-colors">{toddler.name}</div>
                       </td>
                       <td className="p-5 text-slate-600 font-medium">{toddler.mother_name}</td>
                       <td className="p-5">
@@ -169,15 +223,6 @@ export default function Toddlers() {
                         <div className="text-slate-800 font-bold">{ageMonths} bulan</div>
                       </td>
                       <td className="p-5 text-slate-600 font-medium">{toddler.dusun}</td>
-                      <td className="p-5 text-right">
-                        <Link 
-                          to={`/admin/balita/${toddler.id}`}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-sky-600 bg-sky-50 hover:bg-sky-500 hover:text-white rounded-xl transition-all shadow-sm"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Detail
-                        </Link>
-                      </td>
                     </tr>
                   );
                 })
@@ -185,7 +230,50 @@ export default function Toddlers() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between bg-white/50">
+            <span className="text-sm text-slate-500 font-medium">
+              Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredToddlers.length)} dari {filteredToddlers.length} balita
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm bg-white"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="text-sm font-bold text-slate-700 px-2">
+                Halaman {currentPage} / {totalPages}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm bg-white"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      <ImportPreviewModal 
+        isOpen={isImportModalOpen}
+        onClose={() => {
+          setIsImportModalOpen(false);
+          setImportFile(null);
+        }}
+        file={importFile}
+        onSuccess={handleImportSuccess}
+      />
+      
+      <FeedbackModal 
+        {...feedback} 
+        onClose={() => setFeedback({ ...feedback, isOpen: false })} 
+      />
     </div>
   );
 }

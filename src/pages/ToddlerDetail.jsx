@@ -1,19 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { calculateAgeInMonths } from '../lib/utils';
-import { ArrowLeft, User, Calendar, Activity, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Activity, TrendingUp, TrendingDown, Minus, MapPin, Edit, Trash2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import EditToddlerModal from '../components/EditToddlerModal';
+import EditMeasurementModal from '../components/EditMeasurementModal';
+import FeedbackModal from '../components/FeedbackModal';
 
 export default function ToddlerDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [toddler, setToddler] = useState(null);
   const [measurements, setMeasurements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditMeasurementModalOpen, setIsEditMeasurementModalOpen] = useState(false);
+  const [editingMeasurement, setEditingMeasurement] = useState(null);
+  const [feedback, setFeedback] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null });
 
-  useEffect(() => {
-    async function fetchData() {
-      // Mock mode fallback
+  const fetchData = async () => {
+    // Mock mode fallback
       if (import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co' || !import.meta.env.VITE_SUPABASE_URL) {
         setToddler({
           id, name: 'Budi Santoso', mother_name: 'Siti Rahma', gender: 'L', birth_date: '2023-01-15'
@@ -44,10 +51,73 @@ export default function ToddlerDetail() {
       } finally {
         setIsLoading(false);
       }
-    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [id]);
+
+  const handleEditSuccess = () => {
+    setIsEditModalOpen(false);
+    setFeedback({
+      isOpen: true,
+      title: 'Berhasil',
+      message: 'Data profil balita berhasil diperbarui!',
+      type: 'success',
+      onConfirm: () => {
+        setFeedback({ ...feedback, isOpen: false });
+        fetchData();
+      }
+    });
+  };
+
+  const handleEditMeasurementSuccess = () => {
+    setIsEditMeasurementModalOpen(false);
+    setEditingMeasurement(null);
+    setFeedback({
+      isOpen: true,
+      title: 'Berhasil',
+      message: 'Riwayat pengukuran berhasil diperbarui!',
+      type: 'success',
+      onConfirm: () => {
+        setFeedback({ ...feedback, isOpen: false });
+        fetchData();
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    setFeedback({
+      isOpen: true,
+      title: 'Hapus Balita?',
+      message: `Apakah Anda yakin ingin menghapus profil balita ${toddler?.name}? Seluruh riwayat pengukurannya juga akan ikut terhapus permanen.`,
+      type: 'confirm',
+      confirmText: 'Ya, Hapus',
+      onConfirm: async () => {
+        setFeedback({ ...feedback, isOpen: false });
+        try {
+          const { error } = await supabase.from('toddlers').delete().eq('id', id);
+          if (error) throw error;
+          
+          setFeedback({
+            isOpen: true,
+            title: 'Berhasil',
+            message: 'Data balita berhasil dihapus!',
+            type: 'success',
+            onConfirm: () => navigate('/admin/balita')
+          });
+        } catch (err) {
+          console.error(err);
+          setFeedback({
+            isOpen: true,
+            title: 'Gagal',
+            message: 'Terjadi kesalahan saat menghapus data.',
+            type: 'error'
+          });
+        }
+      }
+    });
+  };
 
   if (isLoading) {
     return (
@@ -116,11 +186,29 @@ export default function ToddlerDetail() {
               <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" /> {toddler.dusun}</span>
             </div>
           </div>
-          <span className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm backdrop-blur-sm border ${
-            toddler.gender === 'L' ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-pink-50 text-pink-700 border-pink-100'
-          }`}>
-            {toddler.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
-          </span>
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+            <span className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm backdrop-blur-sm border ${
+              toddler.gender === 'L' ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-pink-50 text-pink-700 border-pink-100'
+            }`}>
+              {toddler.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-2.5 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100"
+                title="Edit Profil"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100"
+                title="Hapus Balita"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -135,21 +223,31 @@ export default function ToddlerDetail() {
             </h3>
             
             {chartData.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
-                    <YAxis yAxisId="left" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="right" orientation="right" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
-                    <Line yAxisId="left" type="monotone" dataKey="Berat" stroke="#0ea5e9" strokeWidth={3} dot={{r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Berat (kg)" />
-                    <Line yAxisId="right" type="monotone" dataKey="Tinggi" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Tinggi (cm)" />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="flex flex-col gap-8">
+                <div className="h-64">
+                  <h4 className="text-sm font-bold text-slate-600 mb-2 text-center">Grafik Berat Badan (kg)</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
+                      <YAxis tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                      <Line type="monotone" dataKey="Berat" stroke="#0ea5e9" strokeWidth={3} dot={{r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Berat (kg)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="h-64">
+                  <h4 className="text-sm font-bold text-slate-600 mb-2 text-center">Grafik Tinggi Badan (cm)</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} dy={10} />
+                      <YAxis tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                      <Line type="monotone" dataKey="Tinggi" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} name="Tinggi (cm)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             ) : (
               <div className="h-80 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -179,9 +277,16 @@ export default function ToddlerDetail() {
                     });
                     
                     return (
-                      <div key={m.id || index} className="p-4 hover:bg-slate-50 transition-colors">
+                      <div 
+                        key={m.id || index} 
+                        onClick={() => {
+                          setEditingMeasurement(m);
+                          setIsEditMeasurementModalOpen(true);
+                        }}
+                        className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+                      >
                         <div className="flex justify-between items-start mb-2">
-                          <div className="font-medium text-slate-700 text-sm">{formattedDate}</div>
+                          <div className="font-medium text-slate-700 text-sm group-hover:text-sky-600 transition-colors">{formattedDate}</div>
                           <div className={`px-2 py-0.5 rounded-md text-xs font-semibold border flex items-center gap-1 ${getStatusBadgeClass(m.weight_status)}`}>
                             {getStatusIcon(m.weight_status)}
                             {m.weight_status}
@@ -213,8 +318,29 @@ export default function ToddlerDetail() {
             </div>
           </div>
         </div>
-
       </div>
+
+      <EditToddlerModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        toddler={toddler}
+        onSuccess={handleEditSuccess}
+      />
+
+      <EditMeasurementModal 
+        isOpen={isEditMeasurementModalOpen}
+        onClose={() => {
+          setIsEditMeasurementModalOpen(false);
+          setEditingMeasurement(null);
+        }}
+        measurement={editingMeasurement}
+        onSuccess={handleEditMeasurementSuccess}
+      />
+
+      <FeedbackModal 
+        {...feedback} 
+        onClose={() => setFeedback({ ...feedback, isOpen: false })} 
+      />
     </div>
   );
 }
