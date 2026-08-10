@@ -6,6 +6,7 @@ import { ArrowLeft, User, Calendar, Activity, TrendingUp, TrendingDown, Minus, M
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import EditToddlerModal from '../components/EditToddlerModal';
 import EditMeasurementModal from '../components/EditMeasurementModal';
+import AddMeasurementModal from '../components/AddMeasurementModal';
 import FeedbackModal from '../components/FeedbackModal';
 
 export default function ToddlerDetail() {
@@ -16,6 +17,7 @@ export default function ToddlerDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditMeasurementModalOpen, setIsEditMeasurementModalOpen] = useState(false);
+  const [isAddMeasurementModalOpen, setIsAddMeasurementModalOpen] = useState(false);
   const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [feedback, setFeedback] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null });
 
@@ -78,6 +80,20 @@ export default function ToddlerDetail() {
       isOpen: true,
       title: 'Berhasil',
       message: 'Riwayat pengukuran berhasil diperbarui!',
+      type: 'success',
+      onConfirm: () => {
+        setFeedback({ ...feedback, isOpen: false });
+        fetchData();
+      }
+    });
+  };
+
+  const handleAddMeasurementSuccess = () => {
+    setIsAddMeasurementModalOpen(false);
+    setFeedback({
+      isOpen: true,
+      title: 'Berhasil',
+      message: 'Pengukuran baru berhasil ditambahkan!',
       type: 'success',
       onConfirm: () => {
         setFeedback({ ...feedback, isOpen: false });
@@ -262,9 +278,12 @@ export default function ToddlerDetail() {
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-slate-200/40 border border-white overflow-hidden h-full flex flex-col">
             <div className="p-6 border-b border-slate-100/50 flex items-center justify-between bg-white/50">
               <h3 className="text-lg font-bold text-slate-800">Riwayat Pengukuran</h3>
-              <Link to="/admin/input" className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-500 hover:text-white transition-all shadow-sm">
+              <button 
+                onClick={() => setIsAddMeasurementModalOpen(true)}
+                className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-500 hover:text-white transition-all shadow-sm"
+              >
                 + Tambah
-              </Link>
+              </button>
             </div>
             
             <div className="flex-1 overflow-y-auto">
@@ -335,6 +354,13 @@ export default function ToddlerDetail() {
         }}
         measurement={editingMeasurement}
         onSuccess={handleEditMeasurementSuccess}
+      />
+
+      <AddMeasurementModal 
+        isOpen={isAddMeasurementModalOpen}
+        onClose={() => setIsAddMeasurementModalOpen(false)}
+        toddlerId={toddler.id}
+        onSuccess={handleAddMeasurementSuccess}
       />
 
       <FeedbackModal 

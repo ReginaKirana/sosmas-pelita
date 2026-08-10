@@ -3,7 +3,6 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Toddlers from './pages/Toddlers';
-import ToddlerForm from './pages/ToddlerForm';
 import ToddlerDetail from './pages/ToddlerDetail';
 import ParentPortal from './pages/ParentPortal';
 import PublicToddlerDetail from './pages/PublicToddlerDetail';
@@ -23,7 +22,6 @@ function App() {
         <Route path="/admin" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="balita" element={<Toddlers />} />
-          <Route path="input" element={<ToddlerForm />} />
           <Route path="balita/:id" element={<ToddlerDetail />} />
         </Route>
         

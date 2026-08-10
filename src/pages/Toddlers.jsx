@@ -4,6 +4,7 @@ import { calculateAgeInMonths, getAgeCategory } from '../lib/utils';
 import { Search, Filter, ChevronRight, ChevronLeft, Upload } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import ImportPreviewModal from '../components/ImportPreviewModal';
+import AddToddlerModal from '../components/AddToddlerModal';
 import FeedbackModal from '../components/FeedbackModal';
 
 export default function Toddlers() {
@@ -15,6 +16,7 @@ export default function Toddlers() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [feedback, setFeedback] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const navigate = useNavigate();
@@ -115,9 +117,12 @@ export default function Toddlers() {
               onChange={handleFileChange}
             />
           </label>
-          <Link to="/admin/input" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white font-bold rounded-xl hover:from-sky-600 hover:to-sky-700 shadow-md transition-all">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white font-bold rounded-xl hover:from-sky-600 hover:to-sky-700 shadow-md transition-all"
+          >
             + Tambah Balita Baru
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -268,6 +273,21 @@ export default function Toddlers() {
         }}
         file={importFile}
         onSuccess={handleImportSuccess}
+      />
+
+      <AddToddlerModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          setIsAddModalOpen(false);
+          setFeedback({
+            isOpen: true,
+            title: 'Berhasil',
+            message: 'Balita baru berhasil ditambahkan.',
+            type: 'success'
+          });
+          fetchToddlers();
+        }}
       />
       
       <FeedbackModal 
