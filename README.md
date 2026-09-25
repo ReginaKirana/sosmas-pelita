@@ -1,6 +1,6 @@
-# 👶 PELITA Cibelok - Sistem Digitalisasi Posyandu
+# 👶 PELITA - Sistem Digitalisasi Posyandu
 
-Sistem Informasi Pencatatan Data Balita Posyandu (PELITA) Desa Cibelok. Aplikasi ini dibangun untuk mendigitalisasi pencatatan data pertumbuhan balita (Berat Badan, Tinggi Badan, Lingkar Kepala) yang sebelumnya dilakukan secara manual oleh para kader Posyandu.
+Sistem Informasi Pencatatan Data Balita Posyandu (PELITA). Aplikasi ini dibangun untuk mendigitalisasi pencatatan data pertumbuhan balita (Berat Badan, Tinggi Badan, Lingkar Kepala) yang sebelumnya dilakukan secara manual oleh para kader Posyandu.
 
 Aplikasi ini mencakup dua sisi pengguna:
 1. **Portal Orang Tua (Publik)**: Orang tua dapat melihat grafik pertumbuhan anaknya secara *real-time* dan mencetak laporan tumbuh kembang.
